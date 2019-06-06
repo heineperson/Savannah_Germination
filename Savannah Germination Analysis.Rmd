@@ -45,7 +45,7 @@ There is also a newer function called VPhyloMaker is supposed to be faster and p
 
 ```{r new phylogeny}
 ## Practice using the tool with example data
-# Source the code
+# Source the code from Qian & Jin 2016 paper
 source("R_codes for S.PhyloMaker.R")
 # Read in the example list
 # example_splist <- na.omit(as.data.frame(read_delim("example.splist.csv", "\t", escape_double = FALSE, trim_ws = TRUE)))
@@ -56,7 +56,6 @@ source("R_codes for S.PhyloMaker.R")
 # result<-S.PhyloMaker(spList=example_splist, tree=phylo, nodes=nodes, scenarios=c("S1","S2")) # For some reason scenario S3 doesn't work
 
 ## Making species list for Ana's species
-names(seedDat)
 Spp <- seedDat[,.(Count=.N),by="Species"]
 Spp[,genus:=word(Species,1,1),by="Species"]
 
@@ -68,6 +67,22 @@ Spp <- merge(Spp,genusTable,by="genus",all.x=T)
 Spp[genus=="Eremanthus", family:="Asteraceae"]
 setnames(Spp,"Species","species")
 Spp <- Spp[,.(species,genus,family)]
+
+## Bulding Tree for all three scenarios
+result_ana_S3 <- S.PhyloMaker(spList=as.data.frame(Spp), tree=phylo, nodes=nodes, scenarios=c("S1","S2","S3")) 
+
+## Comparing scenarios
+plot(result_ana_S3$Scenario.1, main="Scenario 1 (basal polytomies)")
+plot(result_ana_S3$Scenario.2,main="Scenario 2 (random placement)")
+plot(result_ana_S3$Scenario.3,main="Scenario 3 (Bladj & Phylocom)")
+
+
+
+```
+
+## Model for T50 (mean germination time)
+
+```{r mcmcglmm T50, message=FALSE, warning=FALSE}
 # Prep seed dat by making species with underscore
 seedDat[,Species:=gsub(" ","_",Species)]
 
@@ -79,19 +94,6 @@ seedDat_spp[,Successes:=GP/100*10*10]
 seedDat_spp[,Failures:=100-Successes]
 
 
-## Bulding Tree for all three scenarios
-result_ana_S3 <- S.PhyloMaker(spList=as.data.frame(Spp), tree=phylo, nodes=nodes, scenarios=c("S1","S2","S3")) 
-
-## Comparing scenarios
-plot(result_ana_S3$Scenario.1, main="Scenario 1 (basal polytomies)")
-plot(result_ana_S3$Scenario.2,main="Scenario 2 (random placement)")
-plot(result_ana_S3$Scenario.3,main="Scenario 3 (Bladj & Phylocom)")
-
-```
-
-## Model for T50 (mean germination time)
-
-```{r mcmcglmm T50}
 # Collapsing singles to make this work better (using scenario 3 - BLADJ/PHylocom)
 phy_coll <- collapse.singles(result_ana_S3$Scenario.1)
 # Naming the internal nodes so that the following inverse function works
