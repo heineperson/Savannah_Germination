@@ -1,0 +1,279 @@
+---
+title: "Savannah Germination"
+author: "Katie Heineman"
+date: "5/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(data.table)
+library(lme4)
+library(car)
+library(ggplot2)
+library(ape)
+library(MCMCglmm)
+library(phytools)
+library(phylolm)
+library(stringr)
+library(readr)
+
+## Making the treee
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install()
+#biocLite("ggtree")
+library(ggtree)
+
+
+# Ana's seed database
+seedDat <- fread("Savanna seed database.csv")
+setnames(seedDat,c("Vegetation type", "Dispersal mode","Moisture content", "Seed mass (mg)"), c("VegType", "DM","MC","SM" ))
+seedDat[,Dormancy2Cat:=ifelse(Dormancy=="ND","ND","D")]
+
+```
+
+# Old Phylogeny (from Ana)
+
+Missing a species (Kielmeyera_coriacea)
+
+```{r old phylogeny}
+tree <- "((((((((((((((((((((((((((((((((((Tabebuia_ochraceae)tabebuia)bignoniaceae))))))))))lamiales,(((((((((((((((Solanum_lycocarpum)solanum)solaneae)))))))solanoideae))))solanaceae))solanales),(((((((((Palicourea_rigida)palicourea))))))rubioideae)rubiaceae)gentianales))lamiids,(((((((((Eremanthus_glomerultatus)eremanthus)asteraceae)))))asterales))campanulids),((((((((Styraxferrugineous)styrax)styracaceae))))))ericales)ericales_to_asterales)asterids,((((((((((((((Guapira_graciliflora,Guapira_noxia)guapira)nyctaginaceae))))))))))))caryophyllales))),((((((((((Ouratea_floribunda,Ouratea_hexasperma)ouratea)ochnaceae,(((Maprounea_brasiliensis)maprounea)euphorbiaceae),((((Erythroxylum_suberosum)erythroxylum)erythroxylaceae)))malpighiales,(((((Rourea_induta)rourea)connaraceae)))oxalidales))celastrales_to_malpighiales,(((((((((((((((((((Machaerium_acutifolium)machaerium))dalbergia_group))dalbergieae)),(((Acosmium_dasycarpum)acosmium)ormosieae)genistoids)))))papilionoideae,((((((((((((((((((Calliandra_dysantha)calliandra)inga_alliance))ingeae)))))))))mimosoids)),(((Chamaecrista_orbiculata)chamaecrista)cassiinae))))))))fabaceae))fabales,((((((((Brosimum_gaudichaudii)brosimum)moraceae)))))rosales))))fabids,((((((((((((((((((((((Campomanesia_pubescens)campomanesia))))pimentagroup))))))myrteae)myrteaestem))))myrtaceae),(((Miconia_ferruginata)miconia)melastomataceae))))myrtales),((((((((((Eriotheca_pubescens)eriotheca)malvaceae)))malvales)malvales_to_brassicales)huerteales_to_brassicales))))malvids))rosids)))core_eudicots)trochodendrales_to_asterales)sabiales_to_asterales)eudicots)ceratophyllales_and_eudicots)poales_to_asterales)magnoliales_to_asterales)austrobaileyales_to_asterales)nymphaeales_to_asterales)angiosperms)seedplants)euphyllophyte[NOTE: 1 taxa not matched: callophyllaceae/kielmeyera/Kielmeyera_coriacea, ];"
+
+phy<-read.newick(text=tree)
+plot(phy)
+```
+
+# Building New Phylogeny using PhyloMakeR
+
+S.Phylomater produces phylogenies using three scenarios. This function & method were described in Qian & Jin 2016 in Journal of Ecology.
+
+1. adding genera or species as basal polytomies within their families or genera 
+2. adding genera or species randomly within their families or genera 
+3. adding genera or species to their families or genera using the same approach implemented in Phylomatic and BLADJ 
+
+There is also a newer function called VPhyloMaker is supposed to be faster and perhaps use a more up to date phylogeny?
+
+```{r new phylogeny}
+## Practice using the tool with example data
+# Source the code
+source("R_codes for S.PhyloMaker.R")
+# Read in the example list
+# example_splist <- na.omit(as.data.frame(read_delim("example.splist.csv", "\t", escape_double = FALSE, trim_ws = TRUE)))
+# # Read in the megaphylogeny
+ phylo<-read.tree("PhytoPhylo.tre") # read in the megaphylogeny.
+ nodes <- as.data.table(read_delim("nodes.csv", "\t", escape_double = FALSE,  trim_ws = TRUE))
+# # Run the phylogeny for two "scenarios"
+# result<-S.PhyloMaker(spList=example_splist, tree=phylo, nodes=nodes, scenarios=c("S1","S2")) # For some reason scenario S3 doesn't work
+
+## Making species list for Ana's species
+names(seedDat)
+Spp <- seedDat[,.(Count=.N),by="Species"]
+Spp[,genus:=word(Species,1,1),by="Species"]
+
+## Finding Family's from genera from phylomaker Nodes file
+genusTable = nodes[,.(family=family[1]),by="genus"]
+
+## Merge families onto genus
+Spp <- merge(Spp,genusTable,by="genus",all.x=T)
+Spp[genus=="Eremanthus", family:="Asteraceae"]
+setnames(Spp,"Species","species")
+Spp <- Spp[,.(species,genus,family)]
+# Prep seed dat by making species with underscore
+seedDat[,Species:=gsub(" ","_",Species)]
+
+# Species Means
+# Calculate species mean T50
+seedDat_spp <- seedDat[,.(T50_mean=mean(T50,na.rm=T), GP = mean(GP,na.rm=T), Seedmass = mean(SM,na.rm=T), Moisture = mean(MC,na.rm=T)), by="Species"]
+# The number of sucess is the averager germ percentage X 10 seeds per replicate X 10 reps
+seedDat_spp[,Successes:=GP/100*10*10]
+seedDat_spp[,Failures:=100-Successes]
+
+
+## Bulding Tree for all three scenarios
+result_ana_S3 <- S.PhyloMaker(spList=as.data.frame(Spp), tree=phylo, nodes=nodes, scenarios=c("S1","S2","S3")) 
+
+## Comparing scenarios
+plot(result_ana_S3$Scenario.1, main="Scenario 1 (basal polytomies)")
+plot(result_ana_S3$Scenario.2,main="Scenario 2 (random placement)")
+plot(result_ana_S3$Scenario.3,main="Scenario 3 (Bladj & Phylocom)")
+
+```
+
+## Model for T50 (mean germination time)
+
+```{r mcmcglmm T50}
+# Collapsing singles to make this work better (using scenario 3 - BLADJ/PHylocom)
+phy_coll <- collapse.singles(result_ana_S3$Scenario.1)
+# Naming the internal nodes so that the following inverse function works
+phy_coll$node.label[which(phy_coll$node.label=="")]=paste0("unknownNode",seq(1:(length(which(phy_coll$node.label=="")))))
+
+# This does somethign to make the tree ultrametric
+phy_coll <- chronoMPL(phy_coll)
+
+# We want to investigate a possible relationship between the phenotypes and the cofactor, 
+# while controlling for any phylogenetic dependency in the dataset. 
+# To achieve our goal, we want to use the phylogenetic mixed model implemented in the 
+# MCMCglmm package. Note the phylo column containing the name of the species in our dataset: 
+#   it corresponds to the phylogenetic effect we are going to include in our model. 
+# In order to do so, we need to calculate the inverse of the  $ \bm{\Sigma}$ 
+#   matrix of phylogenetic correlation:
+inv.phylo<-inverseA(phy_coll,nodes="TIPS",scale=TRUE)
+inv.phylo$Ainv
+Ainv = inv.phylo$Ainv
+
+# Initializing the bayesian model by defining priors
+# I changed the nu prior form 0.02 to 2 and it seems to help convergence
+prior<-list(G=list(G1=list(V=1,nu=.02)),R=list(V=1,nu=0.02))
+
+
+## Bayesian model checking for just phylogenetic signal
+## Convergence of this model was helped by converting the T50 variable to a log scale
+model_T50<-MCMCglmm(log(T50)~1,random=~Species,
+                    family="gaussian",ginverse=list(Species=Ainv),prior=prior,
+                    data=seedDat,nitt=300000,burnin=10000,thin=50)
+
+plot(model_T50)
+summary(model_T50)
+lambda <- model_T50$VCV[,'Species']/
+  (model_T50$VCV[,'Species']+model_T50$VCV[,'units'])
+mean(lambda)
+posterior.mode(lambda)
+HPDinterval(lambda)
+DICint <- summary(model_T50)$DIC
+
+
+prior<-list(G=list(G1=list(V=1,nu=.5)),R=list(V=1,nu=0.1))
+
+
+## How much phylogenetic signal in species means?
+# Bayesian model checking for just phylogenetic signal
+# Convergence of this model was helped by converting the T50 variable to a log scale
+model_T50_spp<-MCMCglmm(log(T50_mean)~1,random=~Species,
+                    family="gaussian",ginverse=list(Species=Ainv),prior=prior,
+                    data=seedDat_spp,nitt=3000000,burnin=100000,thin=50)
+
+
+plot(model_T50_spp)
+summary(model_T50_spp)
+lambda <- model_T50_spp$VCV[,'Species']/
+  (model_T50_spp$VCV[,'Species']+model_T50_spp$VCV[,'units'])
+mean(lambda)
+posterior.mode(lambda)
+HPDinterval(lambda)
+DICint <- summary(model_T50_spp)$DIC
+
+
+## FULL Bayesian model multiple regression model for T50
+setCores<-round(detectCores()*0.8)
+cl <- makeCluster(getOption("cl.cores",setCores))
+cl.pkg <- clusterEvalQ(cl,library(MCMCglmm)) 
+clusterExport(cl,"prior")
+  clusterExport(cl,"test.data")
+  clusterExport(cl,"Ainv")
+ model2_10runs<-parLapply(cl=cl,1:10, function(i) {
+    MCMCglmm(phenotype~1, random=~taxon, ginverse=list(taxon=Ainv),
+             data=test.data, prior=prior, verbose=FALSE, 
+             nitt=100000, burnin=10000, thin=10)}
+  )
+  
+# once it's finished, use stopCluster() to stop running the parallel cluster
+stopCluster(cl)
+summary(model2_10runs[[3]]) # summarize the third model out of the 10
+
+
+cl <- makeCluster(getOption("cl.cores",setCores))
+
+
+
+model_T50_fullmodel<-MCMCglmm(log(T50)~VegType + DM + MC + SM+Dormancy2Cat,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
+                    data=seedDat,nitt=5000000,burnin=100000,thin=500)
+plot(model_T50_fullmodel)
+summary(model_T50_fullmodel)
+lambda_full <- model_T50_fullmodel$VCV[,'Species']/
+  (model_T50_fullmodel$VCV[,'Species']+model_T50_fullmodel$VCV[,'units'])
+mean(lambda_full)
+posterior.mode(lambda_full)
+HPDinterval(lambda_full)
+DICfull <- summary(model_T50_fullmodel)$DIC
+
+
+```
+# MCMC Glmm Germination Percentage
+```{r MCMCglmm GP}
+##################################
+########
+# The Bayesian model - including the dependent variable (Germination Percentage)
+ prior2=list(R=list(V=1, nu=50), G=list(G1=list(V=1, nu=2,  
+                                               alpha.mu=0, alpha.V=500)))
+ prior1 = list(R = list(V = 1, nu=0.08), G = list(G1 = list(V = 1, nu = .5, alpha.mu=0, alpha.V=200)))
+
+seedDat_spp[,Successes:=round( Successes)]
+ seedDat_spp[,Failures:=round( Failures)]
+
+model_GP_phyloonly<-MCMCglmm(cbind((Successes),(Failures))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior1, data=seedDat_spp,nitt=2600000,burnin=60000,thin=200)                                          
+
+plot(model_GP_phyloonly)
+summary(model_GP_phyloonly)
+lambda_GP <- model_GP_phyloonly $VCV[,'Species']/
+  (model_GP_phyloonly$VCV[,'Species']+ model_GP_phyloonly$VCV[,'units'])
+mean(lambda_GP)
+posterior.mode(lambda_GP)
+HPDinterval(lambda_GP)
+DICGP <- summary(model_GP_phyloonly)$DIC
+#
+
+model_GP_full<-MCMCglmm(cbind(Success,Failure)~DM+habitat+Lifeform+Lifespan,random=~Species,
+                             family="multinomial2",ginverse=list(Species=Ainv),prior=prior2,
+                             data=data_lim_spp,nitt=5000000,burnin=100000,thin=500)                                          
+plot(model_GP_full)
+summary(model_GP_full)
+lambda_GPfull <- model_GP_full $VCV[,'Species']/
+  (model_GP_full$VCV[,'Species']+ model_GP_full$VCV[,'units'])
+mean(lambda_GPfull)
+posterior.mode(lambda_GPfull)
+HPDinterval(lambda_GPfull)
+DICfull <- summary(model_GP_full)$DIC
+
+```
+
+# Distribution of Species mean T50 on Phylogeny
+```{r phylogenetic tree graph T50}
+
+# Data Table called tip order for Family Tree
+TipOrder = data.table(Tip=phy_coll$tip.label)
+# Making a new column that says the order of the tips in the phylogeny
+TipOrder[,TipOrder:=.I]
+
+inputData = merge(seedDat_spp,TipOrder,by.x="Species",by.y="Tip",all.x=T)[order(TipOrder)]
+
+phy_coll$tip.label <- paste0(inputData$Species, " (" ,inputData$T50_mean," days)")
+
+p <- ggtree(phy_coll,layout='rectangular') + geom_tiplab( size=3, color="black",offset=3)
+p <- p + xlim(0,200)
+p <- p +geom_tippoint(aes(x=x), size=(inputData$T50_mean)/10)
+p <- p + ggtitle("Species Mean T50")
+p
+```
+
+# Distribution of Species mean Germination Percent on Phylogeny
+```{r phylogenetic tree graph T50}
+
+phy_coll$tip.label <- paste0(inputData$Species, " (" ,inputData$GP,"%)")
+
+p <- ggtree(phy_coll,layout='rectangular') + geom_tiplab( size=3, color="black",offset=3)
+p <- p + xlim(0,200)
+p <- p +geom_tippoint(aes(x=x), size=(inputData$GP)/10)
+p <- p + ggtitle("Species Mean GP")
+p
+```
+# Distribution of Species mean Seed Mapps on Phylogeny
+```{r phylogenetic tree graph T50}
+
+phy_coll$tip.label <- paste0(inputData$Species, " (" ,inputData$Seedmass,"mg)")
+
+p <- ggtree(phy_coll,layout='rectangular') + geom_tiplab( size=3, color="black",offset=3)
+p <- p + xlim(0,200)
+p <- p +geom_tippoint(aes(x=x), size=sqrt(inputData$Seedmass/2))
+p <- p + ggtitle("Species Mean GP")
+p
+```
