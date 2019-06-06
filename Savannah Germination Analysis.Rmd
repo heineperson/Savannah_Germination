@@ -12,16 +12,16 @@ library(car)
 library(ggplot2)
 library(ape)
 library(MCMCglmm)
-library(phytools)
+#library(phytools)
 library(phylolm)
 library(stringr)
 library(readr)
 
 ## Making the treee
-# if (!requireNamespace("BiocManager", quietly = TRUE))
-#     install.packages("BiocManager")
-# BiocManager::install()
-#biocLite("ggtree")
+ if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+ BiocManager::install()
+biocLite("ggtree")
 library(ggtree)
 
 
