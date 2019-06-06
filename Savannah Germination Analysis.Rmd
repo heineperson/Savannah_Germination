@@ -12,36 +12,26 @@ library(car)
 library(ggplot2)
 library(ape)
 library(MCMCglmm)
-#library(phytools)
+library(phytools)
 library(phylolm)
 library(stringr)
 library(readr)
 
-## Making the treee
- if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
- BiocManager::install()
-biocLite("ggtree")
-library(ggtree)
+## Making the tree- Doesn't seem to work with Ubuntu this version because it doesn't have the right version of R
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+# BiocManager::install()
+#biocLite("ggtree")
+#library(ggtree)
 
 
 # Ana's seed database
-seedDat <- fread("Savanna seed database.csv")
+seedDat <- fread("Data/Savanna seed database.csv")
 setnames(seedDat,c("Vegetation type", "Dispersal mode","Moisture content", "Seed mass (mg)"), c("VegType", "DM","MC","SM" ))
 seedDat[,Dormancy2Cat:=ifelse(Dormancy=="ND","ND","D")]
 
 ```
 
-# Old Phylogeny (from Ana)
-
-Missing a species (Kielmeyera_coriacea)
-
-```{r old phylogeny}
-tree <- "((((((((((((((((((((((((((((((((((Tabebuia_ochraceae)tabebuia)bignoniaceae))))))))))lamiales,(((((((((((((((Solanum_lycocarpum)solanum)solaneae)))))))solanoideae))))solanaceae))solanales),(((((((((Palicourea_rigida)palicourea))))))rubioideae)rubiaceae)gentianales))lamiids,(((((((((Eremanthus_glomerultatus)eremanthus)asteraceae)))))asterales))campanulids),((((((((Styraxferrugineous)styrax)styracaceae))))))ericales)ericales_to_asterales)asterids,((((((((((((((Guapira_graciliflora,Guapira_noxia)guapira)nyctaginaceae))))))))))))caryophyllales))),((((((((((Ouratea_floribunda,Ouratea_hexasperma)ouratea)ochnaceae,(((Maprounea_brasiliensis)maprounea)euphorbiaceae),((((Erythroxylum_suberosum)erythroxylum)erythroxylaceae)))malpighiales,(((((Rourea_induta)rourea)connaraceae)))oxalidales))celastrales_to_malpighiales,(((((((((((((((((((Machaerium_acutifolium)machaerium))dalbergia_group))dalbergieae)),(((Acosmium_dasycarpum)acosmium)ormosieae)genistoids)))))papilionoideae,((((((((((((((((((Calliandra_dysantha)calliandra)inga_alliance))ingeae)))))))))mimosoids)),(((Chamaecrista_orbiculata)chamaecrista)cassiinae))))))))fabaceae))fabales,((((((((Brosimum_gaudichaudii)brosimum)moraceae)))))rosales))))fabids,((((((((((((((((((((((Campomanesia_pubescens)campomanesia))))pimentagroup))))))myrteae)myrteaestem))))myrtaceae),(((Miconia_ferruginata)miconia)melastomataceae))))myrtales),((((((((((Eriotheca_pubescens)eriotheca)malvaceae)))malvales)malvales_to_brassicales)huerteales_to_brassicales))))malvids))rosids)))core_eudicots)trochodendrales_to_asterales)sabiales_to_asterales)eudicots)ceratophyllales_and_eudicots)poales_to_asterales)magnoliales_to_asterales)austrobaileyales_to_asterales)nymphaeales_to_asterales)angiosperms)seedplants)euphyllophyte[NOTE: 1 taxa not matched: callophyllaceae/kielmeyera/Kielmeyera_coriacea, ];"
-
-phy<-read.newick(text=tree)
-plot(phy)
-```
 
 # Building New Phylogeny using PhyloMakeR
 
@@ -60,8 +50,8 @@ source("R_codes for S.PhyloMaker.R")
 # Read in the example list
 # example_splist <- na.omit(as.data.frame(read_delim("example.splist.csv", "\t", escape_double = FALSE, trim_ws = TRUE)))
 # # Read in the megaphylogeny
- phylo<-read.tree("PhytoPhylo.tre") # read in the megaphylogeny.
- nodes <- as.data.table(read_delim("nodes.csv", "\t", escape_double = FALSE,  trim_ws = TRUE))
+ phylo<-read.tree("Data/PhytoPhylo.tre") # read in the megaphylogeny.
+ nodes <- as.data.table(read_delim("Data/nodes.csv", "\t", escape_double = FALSE,  trim_ws = TRUE))
 # # Run the phylogeny for two "scenarios"
 # result<-S.PhyloMaker(spList=example_splist, tree=phylo, nodes=nodes, scenarios=c("S1","S2")) # For some reason scenario S3 doesn't work
 
