@@ -6,6 +6,18 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+# Ana's seed database
+seedDat <- fread("Data/Savanna seed database.csv")
+setnames(seedDat,c("Vegetation type", "Dispersal mode","Moisture content", "Seed mass (mg)"), c("VegType", "DM","MC","SM" ))
+seedDat[,Dormancy2Cat:=ifelse(Dormancy=="ND","ND","D")]
+
+## Read in Trees 
+# Scenario 3:  adding genera or species to their families or genera using the same approach implemented in Phylomatic and BLADJ 
+phy_coll3 <- read.tree("Data/phy_coll3.tre")
+# Scenario 1:  adding genera or species as basal polytomies within their families or genera 
+phy_coll1 <- read.tree("Data/phy_coll1.tre")
+# Scenario 2: adding genera or species randomly within their families or genera 
+phy_coll2 <- read.tree("Data/phy_coll2.tre")
 
 ```
 
@@ -60,4 +72,8 @@ physig2
 
 ```
 
-## Calculating Phylogenetic Signal Using Picante Package
+## Phylogenetic Signal MCMCglmm models
+
+```{r phylogenetic signal models}
+
+```
