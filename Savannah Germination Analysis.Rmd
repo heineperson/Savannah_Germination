@@ -94,7 +94,7 @@ seedDat[,Species:=gsub(" ","_",Species)]
 # Calculate species mean T50
 seedDat_spp <- seedDat[,.(T50_mean=mean(T50,na.rm=T), GP = mean(GP,na.rm=T), Seedmass = mean(SM,na.rm=T), Moisture = mean(MC,na.rm=T)), by="Species"]
 # The number of sucess is the averager germ percentage X 10 seeds per replicate X 10 reps
-seedDat_spp[,Successes:=GP/100*10*10]
+seedDat_spp[,Successes:=GP]
 seedDat_spp[,Failures:=100-Successes]
 
 
