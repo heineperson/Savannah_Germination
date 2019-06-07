@@ -5,7 +5,14 @@ date: "6/7/2019"
 output: html_document
 ---
 
+
 ```{r setup, include=FALSE}
+# Packages
+library(data.table)
+library(picante)
+library(MCMCglmm)
+
+
 # Ana's seed database
 seedDat <- fread("Data/Savanna seed database.csv")
 setnames(seedDat,c("Vegetation type", "Dispersal mode","Moisture content", "Seed mass (mg)"), c("VegType", "DM","MC","SM" ))
