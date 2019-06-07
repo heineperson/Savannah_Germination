@@ -139,3 +139,32 @@ DICfull <- summary(model_GP_full)$DIC
 
 ```
 
+
+## Code for making chains multi-core (may want to explore)
+
+```{r multicore code}
+
+# ## FULL Bayesian model multiple regression model for T50
+# setCores<-round(detectCores()*0.8)
+# cl <- makeCluster(getOption("cl.cores",setCores))
+# cl.pkg <- clusterEvalQ(cl,library(MCMCglmm)) 
+# clusterExport(cl,"prior")
+#   clusterExport(cl,"test.data")
+#   clusterExport(cl,"Ainv")
+#  model2_10runs<-parLapply(cl=cl,1:10, function(i) {
+#     MCMCglmm(phenotype~1, random=~taxon, ginverse=list(taxon=Ainv),
+#              data=test.data, prior=prior, verbose=FALSE, 
+#              nitt=100000, burnin=10000, thin=10)}
+#   )
+#   
+# # once it's finished, use stopCluster() to stop running the parallel cluster
+# stopCluster(cl)
+# summary(model2_10runs[[3]]) # summarize the third model out of the 10
+# 
+# 
+# cl <- makeCluster(getOption("cl.cores",setCores))
+# 
+
+
+```
+

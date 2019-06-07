@@ -92,6 +92,78 @@ physig2
 ## Phylogenetic Signal MCMCglmm models
 
 ```{r phylogenetic signal models}
+# We want to investigate a possible relationship between the phenotypes and the cofactor, 
+# while controlling for any phylogenetic dependency in the dataset. 
+# To achieve our goal, we want to use the phylogenetic mixed model implemented in the 
+# MCMCglmm package. Note the phylo column containing the name of the species in our dataset: 
+#   it corresponds to the phylogenetic effect we are going to include in our model. 
+# In order to do so, we need to calculate the inverse of the  $ \bm{\Sigma}$ 
+#   matrix of phylogenetic correlation:
+inv.phylo<-inverseA(phy_coll,scale=TRUE,nodes="TIPS",reduced=FALSE)
+inv.phylo$Ainv
+Ainv = inv.phylo$Ainv
+
+# Initializing the bayesian model by defining priors
+# Here is a prior that has been in several sources that is thought of as a weak prior
+prior_weak <- list(R = list(V=1, nu=0.002),
+              G = list(G1 = list(V=1, nu=0.002)))
+# I changed the nu prior form 0.02 to 2 and it seems to help convergence
+prior<-list(G=list(G1=list(V=1,nu=2)),R=list(V=1,nu=0.02))
+#  A prior Katie has tinkered with to make stronger
+prior_stronger<-list(G=list(G1=list(V=1,nu=0.8)),R=list(V=1,nu=0.8))
+
+
+# Function calculating a version of pagel's lambda for MCMCglmm objects
+lambda <- function(modelObject){
+ # objPlot <- plot(modelObject)
+  objlambdaVec <- lambda <- modelObject$VCV[,'Species']/
+    (modelObject$VCV[,'Species']+modelObject$VCV[,'units'])
+  objlambdaMean <- mean(lambda)
+  objlambdaMode <- posterior.mode(lambda)
+  objlambdaInt <- HPDinterval(lambda)
+  
+  return(list(lambdaVec=objlambdaVec,lambdaMean=objlambdaMean,lambdaMode=objlambdaMode,lambdaInt=objlambdaInt))
+}
+
+
+#### #### #### #### 
+#### T50 #####
+#### #### #### #### 
+## Bayesian model checking for just phylogenetic signal
+## Convergence of this model was helped by converting the T50 variable to a log scale
+model_T50<-MCMCglmm(log(T50)~1,random=~Species,
+                    family="gaussian",ginverse=list(Species=Ainv),prior=prior,
+                    data=seedDat,nitt=300000,burnin=10000,thin=50)
+plot(model_T50)
+summary(model_T50)
+lambda(model_T50)$lambdaInt
+
+## How much phylogenetic signal in species means?
+# Bayesian model checking for just phylogenetic signal
+# Convergence of this model was helped by converting the T50 variable to a log scale
+model_T50_spp<-MCMCglmm(log(T50_mean)~1,random=~Species,
+                    family="gaussian",ginverse=list(Species=Ainv),prior=prior_stronger,
+                    data=seedDat_spp,nitt=300000,burnin=10000,thin=50)
+plot(model_T50_spp)
+summary(model_T50_spp)
+lambda(model_T50_spp)$lambdaInt
+
+#### #### #### #### 
+#### Germiation Percent #####
+#### #### #### #### 
+# The Bayesian model - including the dependent variable (Germination Percentage)
+ prior2=list(R=list(V=1, nu=50), G=list(G1=list(V=1, nu=2,  
+                                               alpha.mu=0, alpha.V=500)))
+ prior1 = list(R = list(V = 1, nu=0.08), G = list(G1 = list(V = 1, nu = .5, alpha.mu=0, alpha.V=200)))
+
+seedDat_spp[,Successes:=round( Successes)]
+seedDat_spp[,Failures:=round( Failures)]
+
+model_GP_phyloonly<-MCMCglmm(cbind((Successes),(Failures))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior1, data=seedDat_spp,nitt=300000,burnin=10000,thin=50)       
+plot(model_GP_phyloonly)
+summary(model_GP_phyloonly)
+lambda(model_GP_phyloonly)$lambdaInt
+
 
 ```
 
