@@ -7,7 +7,12 @@ output: html_document
 
 # Analyzing Phylogenetic Signal in Germination Percent and Seed Time to Median Germination
 
-This document also include visualization of the traits on the tree
+This document also include visualization of the traits on the tree and two versions of Phylogenetic signal:
+
+*Blomberg et al.'s (2003) K*: K is a scaled ratio of the variance among species over the contrasts variance (the latter of which will be low if phylogenetic signal is high)
+*Pagel's Lambda*: λ is a scaling parameter for the correlations between species, relative to the correlation expected under Brownian evolution
+
+http://blog.phytools.org/2012/03/phylogenetic-signal-with-k-and.html
 
 ```{r setup, include=FALSE}
 # Packages
@@ -101,7 +106,7 @@ physig2
 #   it corresponds to the phylogenetic effect we are going to include in our model. 
 # In order to do so, we need to calculate the inverse of the  $ \bm{\Sigma}$ 
 #   matrix of phylogenetic correlation:
-inv.phylo<-inverseA(phy_coll3,scale=TRUE,nodes="TIPS",reduced=FALSE)
+inv.phylo<-inverseA(phy_coll3,scale=TRUE,nodes="ALL",reduced=FALSE)
 inv.phylo$Ainv
 Ainv = inv.phylo$Ainv
 
@@ -159,8 +164,6 @@ lambda(model_T50_spp)$lambdaInt
  prior_to_beat = list(R = list(V = 1, nu=0.5), G = list(G1 = list(V = 1, nu = .5, alpha.mu=0, alpha.V=200)))
  prior_to_beat2 = list(R = list(V = 1, nu=0.1), G = list(G1 = list(V = 1, nu = .5, alpha.mu=0, alpha.V=500)))
  prior1 = list(R = list(V = 1, nu=0.1), G = list(G1 = list(V = 1, nu = 0.8, alpha.mu=0, alpha.V=500)))
-
- 
  
 
 model_GP_phyloonly<-MCMCglmm(cbind((Successes),(Failures))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior1, data=seedDat_spp,nitt=3000000,burnin=100000,thin=500)       
@@ -169,7 +172,10 @@ summary(model_GP_phyloonly)
 lambda(model_GP_phyloonly)$lambdaInt
 
 
-model_GP_phyloonly_gauss<-MCMCglmm(GP~1,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior = prior_stronger, data=seedDat_spp,nitt=3000000,burnin=100000,thin=500)       
+
+prior<-list(G=list(G1=list(V=1,nu=.2)),R=list(V=1,nu=0.02))
+
+model_GP_phyloonly_gauss<-MCMCglmm(GP~1,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior = prior, data=seedDat_spp,nitt=300000,burnin=10000,thin=50)       
 plot(model_GP_phyloonly_gauss)
 summary(model_GP_phyloonly_gauss)
 lambda(model_GP_phyloonly_gauss)$lambdaInt
