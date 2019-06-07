@@ -5,6 +5,9 @@ date: "6/7/2019"
 output: html_document
 ---
 
+# Analyzing Phylogenetic Signal in Germination Percent and Seed Time to Median Germination
+
+This document also include visualization of the traits on the tree
 
 ```{r setup, include=FALSE}
 # Packages
@@ -12,6 +15,10 @@ library(data.table)
 library(picante)
 library(MCMCglmm)
 
+# Actual current version of ggtree not supported in this version of R, but this should work for installation
+#source("https://bioconductor.org/biocLite.R")
+#biocLite("ggtree")
+library(ggtree)
 
 # Ana's seed database
 seedDat <- fread("Data/Savanna seed database.csv")
@@ -46,6 +53,9 @@ trait_matrix = as.matrix(seedDat_spp1[,Species:=NULL])
 rownames(trait_matrix) = rowlab
 
 ```
+
+
+
 
 ## Calculating Phylogenetic Signal Using Picante Package
 
@@ -83,4 +93,50 @@ physig2
 
 ```{r phylogenetic signal models}
 
+```
+
+
+
+# Distribution of Species mean T50 on Phylogeny
+```{r phylogenetic tree graph T50}
+
+# Data Table called tip order for Family Tree
+TipOrder = data.table(Tip=phy_coll3$tip.label)
+# Making a new column that says the order of the tips in the phylogeny
+TipOrder[,TipOrder:=.I]
+
+inputData = merge(seedDat_spp,TipOrder,by.x="Species",by.y="Tip",all.x=T)[order(TipOrder)]
+
+phy_coll3$tip.label <- paste0(inputData$Species, " (" ,inputData$T50_mean," days)")
+
+p <- ggtree(phy_coll3,layout='rectangular') 
+p <- p + geom_tiplab( size=3, color="black",offset=3)
+p <- p + xlim(0,200)
+p <- p +geom_tippoint(aes(x=x), size=(inputData$T50_mean)/10)
+p <- p + ggtitle("Species Mean T50")
+p
+```
+
+
+# Distribution of Species mean Germination Percent on Phylogeny
+```{r phylogenetic tree graph T50}
+
+phy_coll3$tip.label <- paste0(inputData$Species, " (" ,inputData$GP,"%)")
+
+p <- ggtree(phy_coll3,layout='rectangular') + geom_tiplab( size=3, color="black",offset=3)
+p <- p + xlim(0,200)
+p <- p +geom_tippoint(aes(x=x), size=(inputData$GP)/10)
+p <- p + ggtitle("Species Mean GP")
+p
+```
+# Distribution of Species mean Seed Mapps on Phylogeny
+```{r phylogenetic tree graph T50}
+
+phy_coll3$tip.label <- paste0(inputData$Species, " (" ,inputData$Seedmass,"mg)")
+
+p <- ggtree(phy_coll3,layout='rectangular') + geom_tiplab( size=3, color="black",offset=3)
+p <- p + xlim(0,200)
+p <- p +geom_tippoint(aes(x=x), size=sqrt(inputData$Seedmass/2))
+p <- p + ggtitle("Species Mean GP")
+p
 ```
