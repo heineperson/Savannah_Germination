@@ -99,7 +99,7 @@ seedDat_spp[,Failures:=100-Successes]
 
 
 # Collapsing singles to make this work better (using scenario 3 - BLADJ/PHylocom)
-phy_coll <- collapse.singles(result_ana_S3$Scenario.1)
+phy_coll <- collapse.singles(result_ana_S3$Scenario.3)
 # Naming the internal nodes so that the following inverse function works
 phy_coll$node.label[which(phy_coll$node.label=="")]=paste0("unknownNode",seq(1:(length(which(phy_coll$node.label=="")))))
 
@@ -155,7 +155,6 @@ plot(model_T50)
 evaluateT50 <- evaluateMCMC(model_T50)
 
 
-
 #  A prior Katie has tinkered with to make stronger
 prior_stronger<-list(G=list(G1=list(V=1,nu=0.8)),R=list(V=1,nu=0.8))
 
@@ -165,18 +164,23 @@ prior_stronger<-list(G=list(G1=list(V=1,nu=0.8)),R=list(V=1,nu=0.8))
 # Convergence of this model was helped by converting the T50 variable to a log scale
 model_T50_spp<-MCMCglmm(log(T50_mean)~1,random=~Species,
                     family="gaussian",ginverse=list(Species=Ainv),prior=prior_stronger,
-                    data=seedDat_spp,nitt=3000000,burnin=100000,thin=500)
-
-
+                    data=seedDat_spp,nitt=3000000,burnin=10000,thin=500)
 plot(model_T50_spp)
-summary(model_T50_spp)
-lambda <- model_T50_spp$VCV[,'Species']/
-  (model_T50_spp$VCV[,'Species']+model_T50_spp$VCV[,'units'])
-mean(lambda)
-posterior.mode(lambda)
-HPDinterval(lambda)
-DICint <- summary(model_T50_spp)$DIC
+evaluateT50 <- evaluateMCMC(model_T50_spp)
 
+
+model_T50_fullmodel<-MCMCglmm(log(T50)~VegType + DM + MC + SM+Dormancy2Cat,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
+                    data=seedDat,nitt=500000,burnin=10000,thin=50)
+plot(model_T50_fullmodel)
+C
+
+model_T50_dormancyCatOnly <- MCMCglmm(log(T50)~Dormancy2Cat,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
+                    data=seedDat,nitt=500000,burnin=10000,thin=50)
+plot(model_T50_dormancyCatOnly)
+
+```
+
+```{r multicore code}
 
 # ## FULL Bayesian model multiple regression model for T50
 # setCores<-round(detectCores()*0.8)
@@ -200,30 +204,8 @@ DICint <- summary(model_T50_spp)$DIC
 # 
 
 
-model_T50_fullmodel<-MCMCglmm(log(T50)~VegType + DM + MC + SM+Dormancy2Cat,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
-                    data=seedDat,nitt=500000,burnin=10000,thin=50)
-plot(model_T50_fullmodel)
-summary(model_T50_fullmodel)
-lambda_full <- model_T50_fullmodel$VCV[,'Species']/
-  (model_T50_fullmodel$VCV[,'Species']+model_T50_fullmodel$VCV[,'units'])
-mean(lambda_full)
-posterior.mode(lambda_full)
-HPDinterval(lambda_full)
-DICfull <- summary(model_T50_fullmodel)$DIC
-
-model_T50_dormancyCatOnly <- MCMCglmm(log(T50)~Dormancy2Cat,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
-                    data=seedDat,nitt=500000,burnin=10000,thin=50)
-plot(model_T50_dormancyCatOnly)
-summary(model_T50_dormancyCatOnly)
-lambda_dormOnly <- model_T50_dormancyCatOnly$VCV[,'Species']/
-  (model_T50_dormancyCatOnly$VCV[,'Species']+model_T50_dormancyCatOnly$VCV[,'units'])
-mean(lambda_dormOnly)
-posterior.mode(lambda_dormOnly)
-HPDinterval(lambda_dormOnly)
-DICfull <- summary(lambda_dormOnly)$DIC
-
-
 ```
+
 # MCMC Glmm Germination Percentage
 ```{r MCMCglmm GP}
 ##################################
