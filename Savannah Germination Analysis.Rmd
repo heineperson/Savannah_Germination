@@ -82,6 +82,8 @@ plot(result_ana_S3$Scenario.3,main="Scenario 3 (Bladj & Phylocom)")
 
 ## Model for T50 (mean germination time)
 
+Interesting source that may provide some insight: https://github.com/TGuillerme/mulTree/blob/master/doc/Vanilla_flavoured_phylogenetic_analyses.Rmd
+
 ```{r mcmcglmm T50, message=FALSE, warning=FALSE}
 # Prep seed dat by making species with underscore
 seedDat[,Species:=gsub(" ","_",Species)]
@@ -114,6 +116,9 @@ inv.phylo$Ainv
 Ainv = inv.phylo$Ainv
 
 # Initializing the bayesian model by defining priors
+# Here is a prior that has been in several sources that is thought of as a weak prior
+prior_weak <- list(R = list(V=1, nu=0.002),
+              G = list(G1 = list(V=1, nu=0.002)))
 # I changed the nu prior form 0.02 to 2 and it seems to help convergence
 prior<-list(G=list(G1=list(V=1,nu=.02)),R=list(V=1,nu=0.02))
 
@@ -134,15 +139,16 @@ HPDinterval(lambda)
 DICint <- summary(model_T50)$DIC
 
 
-prior<-list(G=list(G1=list(V=1,nu=.5)),R=list(V=1,nu=0.1))
+#  A prior Katie has tinkered with to make stronger
+prior_stronger<-list(G=list(G1=list(V=1,nu=.5)),R=list(V=1,nu=0.1))
 
 
 ## How much phylogenetic signal in species means?
 # Bayesian model checking for just phylogenetic signal
 # Convergence of this model was helped by converting the T50 variable to a log scale
-model_T50_spp<-MCMCglmm(log(T50_mean)~1,random=~Species,
-                    family="gaussian",ginverse=list(Species=Ainv),prior=prior,
-                    data=seedDat_spp,nitt=3000000,burnin=100000,thin=50)
+model_T50_spp<-MCMCglmm((T50_mean)~1,random=~Species,
+                    family="gaussian",ginverse=list(Species=Ainv),prior=prior_stronger,
+                    data=seedDat_spp,nitt=3000000,burnin=10000,thin=50)
 
 
 plot(model_T50_spp)
