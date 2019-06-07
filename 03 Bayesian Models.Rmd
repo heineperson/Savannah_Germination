@@ -1,0 +1,141 @@
+---
+title: "02 Bayesian Models with Phylogenetic Random Effects"
+author: "Katie Heineman"
+date: "6/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(data.table)
+library(lme4)
+library(MCMCglmm)
+
+
+
+```
+## MCMCGlmm Models for T50 (mean germination time)
+
+Interesting source that may provide some insight: https://github.com/TGuillerme/mulTree/blob/master/doc/Vanilla_flavoured_phylogenetic_analyses.Rmd
+
+Note: I was confused why the inverse matrix doesn't have each pairwise combination of phylogenetic distances for all species  represented. It seems that Hadfield (2010) argues this is too computationally intensive: https://onlinelibrary.wiley.com/doi/full/10.1111/j.1420-9101.2009.01915.x However, I think maybe I could coerce this through nodes="ALL" argument in inverseA. It seems like these things should not be happening by default but I don't think they are.
+
+```{r mcmcglmm T50, message=FALSE, warning=FALSE}
+
+# We want to investigate a possible relationship between the phenotypes and the cofactor, 
+# while controlling for any phylogenetic dependency in the dataset. 
+# To achieve our goal, we want to use the phylogenetic mixed model implemented in the 
+# MCMCglmm package. Note the phylo column containing the name of the species in our dataset: 
+#   it corresponds to the phylogenetic effect we are going to include in our model. 
+# In order to do so, we need to calculate the inverse of the  $ \bm{\Sigma}$ 
+#   matrix of phylogenetic correlation:
+inv.phylo<-inverseA(phy_coll,scale=TRUE,nodes="TIPS",reduced=FALSE)
+inv.phylo$Ainv
+Ainv = inv.phylo$Ainv
+# Evaluating matrix as dataframe
+b = as.data.table(summary(Ainv))[order(i,j)]
+# Evaluating sample matrix
+#Ainv1<-inverseA(bird.families)
+#b1 = as.data.table(summary(Ainv1$Ainv))[order(i,j)]
+# 
+
+# Initializing the bayesian model by defining priors
+# Here is a prior that has been in several sources that is thought of as a weak prior
+prior_weak <- list(R = list(V=1, nu=0.002),
+              G = list(G1 = list(V=1, nu=0.002)))
+# I changed the nu prior form 0.02 to 2 and it seems to help convergence
+prior<-list(G=list(G1=list(V=1,nu=2)),R=list(V=1,nu=0.02))
+#  A prior Katie has tinkered with to make stronger
+prior_stronger<-list(G=list(G1=list(V=1,nu=0.8)),R=list(V=1,nu=0.8))
+
+
+# Function calculating pagel's lambda for MCMCglmm objects
+lambda <- function(modelObject){
+ # objPlot <- plot(modelObject)
+  objlambdaVec <- lambda <- modelObject$VCV[,'Species']/
+    (modelObject$VCV[,'Species']+modelObject$VCV[,'units'])
+  objlambdaMean <- mean(lambda)
+  objlambdaMode <- posterior.mode(lambda)
+  objlambdaInt <- HPDinterval(lambda)
+  
+  return(list(lambdaVec=objlambdaVec,lambdaMean=objlambdaMean,lambdaMode=objlambdaMode,lambdaInt=objlambdaInt))
+}
+
+
+## Bayesian model checking for just phylogenetic signal
+## Convergence of this model was helped by converting the T50 variable to a log scale
+model_T50<-MCMCglmm(log(T50)~1,random=~Species,
+                    family="gaussian",ginverse=list(Species=Ainv),prior=prior,
+                    data=seedDat,nitt=300000,burnin=10000,thin=50)
+plot(model_T50)
+summary(model_T50)
+lambda(model_T50)$lambdaInt
+summary(model_T50)$DIC
+
+## How much phylogenetic signal in species means?
+# Bayesian model checking for just phylogenetic signal
+# Convergence of this model was helped by converting the T50 variable to a log scale
+model_T50_spp<-MCMCglmm(log(T50_mean)~1,random=~Species,
+                    family="gaussian",ginverse=list(Species=Ainv),prior=prior_stronger,
+                    data=seedDat_spp,nitt=300000,burnin=10000,thin=50)
+plot(model_T50_spp)
+summary(model_T50_spp)
+lambda(model_T50_spp)$lambdaInt
+summary(model_T50_spp)$DIC
+
+
+model_T50_fullmodel<-MCMCglmm(log(T50)~VegType + DM + MC + SM+Dormancy2Cat,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
+                    data=seedDat,nitt=300000,burnin=10000,thin=50)
+plot(model_T50_fullmodel)
+summary(model_T50_fullmodel)
+lambda(model_T50_fullmodel)$lambdaInt
+summary(model_T50_fullmodel)$DIC
+
+model_T50_dormancyCatOnly <- MCMCglmm(log(T50)~Dormancy2Cat,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
+                    data=seedDat,nitt=300000,burnin=10000,thin=50)
+
+plot(model_T50_dormancyCatOnly)
+summary(model_T50_dormancyCatOnly)
+lambda(model_T50_dormancyCatOnly)$lambdaInt
+summary(model_T50_dormancyCatOnly)$DIC
+
+```
+
+
+# MCMC Glmm Germination Percentage
+```{r MCMCglmm GP}
+##################################
+########
+# The Bayesian model - including the dependent variable (Germination Percentage)
+ prior2=list(R=list(V=1, nu=50), G=list(G1=list(V=1, nu=2,  
+                                               alpha.mu=0, alpha.V=500)))
+ prior1 = list(R = list(V = 1, nu=0.08), G = list(G1 = list(V = 1, nu = .5, alpha.mu=0, alpha.V=200)))
+
+seedDat_spp[,Successes:=round( Successes)]
+ seedDat_spp[,Failures:=round( Failures)]
+
+model_GP_phyloonly<-MCMCglmm(cbind((Successes),(Failures))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior1, data=seedDat_spp,nitt=2600000,burnin=60000,thin=200)                                          
+
+plot(model_GP_phyloonly)
+summary(model_GP_phyloonly)
+lambda_GP <- model_GP_phyloonly $VCV[,'Species']/
+  (model_GP_phyloonly$VCV[,'Species']+ model_GP_phyloonly$VCV[,'units'])
+mean(lambda_GP)
+posterior.mode(lambda_GP)
+HPDinterval(lambda_GP)
+DICGP <- summary(model_GP_phyloonly)$DIC
+#
+
+model_GP_full<-MCMCglmm(cbind(Success,Failure)~DM+habitat+Lifeform+Lifespan,random=~Species,
+                             family="multinomial2",ginverse=list(Species=Ainv),prior=prior2,
+                             data=data_lim_spp,nitt=5000000,burnin=100000,thin=500)                                          
+plot(model_GP_full)
+summary(model_GP_full)
+lambda_GPfull <- model_GP_full $VCV[,'Species']/
+  (model_GP_full$VCV[,'Species']+ model_GP_full$VCV[,'units'])
+mean(lambda_GPfull)
+posterior.mode(lambda_GPfull)
+HPDinterval(lambda_GPfull)
+DICfull <- summary(model_GP_full)$DIC
+
+```
+
