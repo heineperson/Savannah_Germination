@@ -77,15 +77,6 @@ plot(result_ana_S3$Scenario.1, main="Scenario 1 (basal polytomies)")
 plot(result_ana_S3$Scenario.2,main="Scenario 2 (random placement)")
 plot(result_ana_S3$Scenario.3,main="Scenario 3 (Bladj & Phylocom)")
 
-# Collapsing singles to make this work better (using scenario 3 - BLADJ/PHylocom)
-phy_coll <- collapse.singles(result_ana_S3$Scenario.3)
-# Naming the internal nodes so that the following inverse function works
-phy_coll$node.label[which(phy_coll$node.label=="")]=paste0("unknownNode",seq(1:(length(which(phy_coll$node.label=="")))))
-# This does somethign to make the tree ultrametric
-phy_coll <- chronoMPL(phy_coll)
-
-
-## Specifiying scenarios for diagnositic testing
 
 ## TREE SCENARIO 3
 phy_coll3 <- collapse.singles(result_ana_S3$Scenario.3)
@@ -93,6 +84,8 @@ phy_coll3 <- collapse.singles(result_ana_S3$Scenario.3)
 phy_coll3$node.label[which(phy_coll3$node.label=="")]=paste0("unknownNode",seq(1:(length(which(phy_coll3$node.label=="")))))
 # This does somethign to make the tree ultrametric
 phy_coll3 <- chronoMPL(phy_coll3)
+write.tree(phy_coll3,"Data/phy_coll3.tre")
+
 
 ## TREE SCENARIO 1
 phy_coll1 <- collapse.singles(result_ana_S3$Scenario.1)
@@ -100,6 +93,7 @@ phy_coll1 <- collapse.singles(result_ana_S3$Scenario.1)
 phy_coll1$node.label[which(phy_coll1$node.label=="")]=paste0("unknownNode",seq(1:(length(which(phy_coll1$node.label=="")))))
 # This does somethign to make the tree ultrametric
 phy_coll1 <- chronoMPL(phy_coll1)
+write.tree(phy_coll1,"Data/phy_coll1.tre")
 
 ## TREE SCENARIO 2
 phy_coll2 <- collapse.singles(result_ana_S3$Scenario.2)
@@ -107,6 +101,7 @@ phy_coll2 <- collapse.singles(result_ana_S3$Scenario.2)
 phy_coll2$node.label[which(phy_coll2$node.label=="")]=paste0("unknownNode",seq(1:(length(which(phy_coll2$node.label=="")))))
 # This does somethign to make the tree ultrametric
 phy_coll2 <- chronoMPL(phy_coll2)
+write.tree(phy_coll2,"Data/phy_coll2.tre")
 
 ```
 ## Data Prep for Phylogenetic Analysis
@@ -155,9 +150,9 @@ trait_matrix <- trait_matrix[phy_coll2$tip.label,]
 MatchDataObj= match.phylo.data(phy_coll2, trait_matrix[,c(1,3)])
 
 # Calculating phylogenetic signal as well as P-value based on variance of phylogenetically independent contrasts relative to tip shuffling randomization.
-physig = multiPhylosignal(MatchDataObj$data, MatchDataObj$phy,reps=100000)
+physig2 = multiPhylosignal(MatchDataObj$data, MatchDataObj$phy,reps=100000)
 
-physig
+physig2
 
 
 ```
