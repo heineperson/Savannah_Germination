@@ -23,6 +23,12 @@ library(MCMCglmm)
 # Actual current version of ggtree not supported in this version of R, but this should work for installation
 #source("https://bioconductor.org/biocLite.R")
 #biocLite("ggtree")
+
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# 
+# BiocManager::install("ggtree")
+
 library(ggtree)
 
 # Ana's seed database
@@ -105,7 +111,7 @@ physig2
 #   it corresponds to the phylogenetic effect we are going to include in our model. 
 # In order to do so, we need to calculate the inverse of the  $ \bm{\Sigma}$ 
 #   matrix of phylogenetic correlation:
-inv.phylo<-inverseA(phy_coll3,scale=TRUE,nodes="ALL",reduced=FALSE)
+inv.phylo<-inverseA(phy_coll3,scale=TRUE,nodes="TIPS",reduced=FALSE)
 inv.phylo$Ainv
 Ainv = inv.phylo$Ainv
 
