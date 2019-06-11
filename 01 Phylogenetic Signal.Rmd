@@ -54,10 +54,10 @@ phy_coll2 <- read.tree("Data/phy_coll2.tre")
 seedDat[,Species:=gsub(" ","_",Species)]
 
 # Calculating Species Means
-seedDat_spp <- seedDat[,.(T50_mean=mean(T50,na.rm=T),log_T50_mean=mean(log(T50),na.rm=T),GP = mean(GP,na.rm=T), sqrt_GP = mean(sqrt(GP),na.rm=T),Seedmass = mean(SM,na.rm=T), Moisture = mean(MC,na.rm=T)), by="Species"]
+seedDat_spp <- seedDat[,.(T50_mean=mean(T50,na.rm=T),log_T50_mean=mean(log(T50),na.rm=T),GP = sum(GP,na.rm=T), sqrt_GP = mean(sqrt(GP),na.rm=T),Seedmass = mean(SM,na.rm=T), Moisture = mean(MC,na.rm=T)), by="Species"]
 # The number of sucess is the averager germ percentage X 10 seeds per replicate X 10 reps
 seedDat_spp[,Successes:=GP]
-seedDat_spp[,Failures:=100-Successes]
+seedDat_spp[,Failures:=1000-Successes]
 seedDat_spp[,Successes:=round( Successes)]
 seedDat_spp[,Failures:=round( Failures)]
 
@@ -197,18 +197,31 @@ lambda(model_T50_spp)$lambdaInt
  #prior1 = list(R = list(V = 1, nu=0.1), G = list(G1 = list(V = 1, nu = 0.8, alpha.mu=0, alpha.V=500)))
  
 
-model_GP_phyloonly<-MCMCglmm(cbind((Successes),(Failures))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior_to_beat2, data=seedDat_spp,nitt=3000000,burnin=100000,thin=500)       
+model_GP_phyloonly_spp<-MCMCglmm(cbind((Successes),(Failures))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior_to_beat2, data=seedDat_spp,nitt=300000,burnin=10000,thin=50)       
+plot(model_GP_phyloonly_spp)
+summary(model_GP_phyloonly_spp)
+lambda(model_GP_phyloonly_spp)$lambdaInt
+
+# Model with replicates (intercept only)
+seedDat[,FailureP:=100-GP]
+model_GP_phyloonly<-MCMCglmm(cbind((GP),(FailureP))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior_to_beat2, data=seedDat,nitt=300000,burnin=10000,thin=50)       
 plot(model_GP_phyloonly)
 summary(model_GP_phyloonly)
 lambda(model_GP_phyloonly)$lambdaInt
 
-
-seedDat[,FailureP:=100-GP]
+# Full Model with GP
 model_GP_fullmodel<-MCMCglmm(cbind(GP,FailureP)~DM+Dormancy2Cat+MC+VegType+log(SM),random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior_to_beat2, data=seedDat,nitt=300000,burnin=10000,thin=50)       
 plot(model_GP_fullmodel)
 summary(model_GP_fullmodel)
 lambda(model_GP_fullmodel)$lambdaInt
+summary(model_GP_fullmodel)$DIC
 
+# 
+model_GP_modelOnly2<-MCMCglmm(cbind(GP,FailureP)~Dormancy2Cat+MC,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior_to_beat2, data=seedDat,nitt=300000,burnin=10000,thin=50)       
+plot(model_GP_modelOnly2)
+summary(model_GP_modelOnly2)
+lambda(model_GP_modelOnly2)$lambdaInt
+summary(model_GP_modelOnly2)$DIC
 
 
 ```
