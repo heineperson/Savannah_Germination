@@ -21,10 +21,11 @@ library(picante)
 library(MCMCglmm)
 library(caper)
 
-# Actual current version of ggtree not supported in this version of R, but this should work for installation
+# This works with R 3.4 or earlier
 #source("https://bioconductor.org/biocLite.R")
 #biocLite("ggtree")
 
+# This works with R 3.5 and later
 # if (!requireNamespace("BiocManager", quietly = TRUE))
 #     install.packages("BiocManager")
 # 
@@ -102,19 +103,27 @@ physig2
 
 ```
 
-## Phylogenetic Signal using the Caper Pagel
+## Phylogenetic Signal using the Caper package for Pagel's lambda
 
-Pagel's Lambda in the framework of a lienar moe
+Pagel's Lambda in the framework of a lienar model. 
+
+Interesting blog: http://www.jcsantosresearch.org/Class_2014_Spring_Comparative/pdf/week_11/Mar_19_2015_comparison_ver_5.pdf
+
 
 ```{r caper package}
-shorebird <- comparative.data(shorebird.tree, shorebird.data, Species, vcv=TRUE, vcv.dim=3)
-mod1 <- pgls(log(Egg.Mass) ~ log(M.Mass) * log(F.Mass), shorebird, lambda='ML')
-mod2 <- pgls(log(Egg.Mass) ~ log(M.Mass), data=shorebird, lambda='ML', delta='ML')
 
-
+# Manipulating data
 dataPGLS = comparative.data(phy_coll3, as.data.frame(seedDat_spp),names.col="Species")
+# Finding pagel's lambda for T50
 mod1 <- pgls(log(T50_mean) ~ 1, dataPGLS, lambda='ML')
 summary(mod1)
+AIC(mod1)
+
+# Finding pagel's lambda for GP -- not sure if this is possible in a discrete or binary context
+mod2 <- pgls(GP ~ 1, dataPGLS, lambda='ML')
+summary(mod2)
+AIC(mod2)
+
 
 ```
 
