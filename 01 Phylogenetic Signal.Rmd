@@ -208,6 +208,7 @@ model_GP_phyloonly<-MCMCglmm(cbind((GP),(FailureP))~1,random=~Species,family="mu
 plot(model_GP_phyloonly)
 summary(model_GP_phyloonly)
 lambda(model_GP_phyloonly)$lambdaInt
+summary(model_GP_phyloonly)$DIC
 
 # Full Model with GP
 model_GP_fullmodel<-MCMCglmm(cbind(GP,FailureP)~DM+Dormancy2Cat+MC+VegType+log(SM),random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior_to_beat2, data=seedDat,nitt=300000,burnin=10000,thin=50)       
