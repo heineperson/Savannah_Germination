@@ -192,24 +192,23 @@ lambda(model_T50_spp)$lambdaInt
 # The Bayesian model - including the dependent variable (Germination Percentage)
 # prior2=list(R=list(V=1, nu=5), G=list(G1=list(V=1, nu=2,  
 #                                              alpha.mu=0, alpha.V=500)))
- prior_to_beat = list(R = list(V = 1, nu=0.5), G = list(G1 = list(V = 1, nu = .5, alpha.mu=0, alpha.V=200)))
+ #prior_to_beat = list(R = list(V = 1, nu=0.5), G = list(G1 = list(V = 1, nu = .5, alpha.mu=0, alpha.V=200)))
  prior_to_beat2 = list(R = list(V = 1, nu=0.1), G = list(G1 = list(V = 1, nu = .5, alpha.mu=0, alpha.V=500)))
- prior1 = list(R = list(V = 1, nu=0.1), G = list(G1 = list(V = 1, nu = 0.8, alpha.mu=0, alpha.V=500)))
+ #prior1 = list(R = list(V = 1, nu=0.1), G = list(G1 = list(V = 1, nu = 0.8, alpha.mu=0, alpha.V=500)))
  
 
-model_GP_phyloonly<-MCMCglmm(cbind((Successes),(Failures))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior1, data=seedDat_spp,nitt=3000000,burnin=100000,thin=500)       
+model_GP_phyloonly<-MCMCglmm(cbind((Successes),(Failures))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior_to_beat2, data=seedDat_spp,nitt=3000000,burnin=100000,thin=500)       
 plot(model_GP_phyloonly)
 summary(model_GP_phyloonly)
 lambda(model_GP_phyloonly)$lambdaInt
 
 
+seedDat[,FailureP:=100-GP]
+model_GP_fullmodel<-MCMCglmm(cbind(GP,FailureP)~DM+Dormancy2Cat+MC+VegType+log(SM),random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior_to_beat2, data=seedDat,nitt=300000,burnin=10000,thin=50)       
+plot(model_GP_fullmodel)
+summary(model_GP_fullmodel)
+lambda(model_GP_fullmodel)$lambdaInt
 
-prior<-list(G=list(G1=list(V=1,nu=.2)),R=list(V=1,nu=0.02))
-
-model_GP_phyloonly_gauss<-MCMCglmm(GP~1,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior = prior, data=seedDat_spp,nitt=300000,burnin=10000,thin=50)       
-plot(model_GP_phyloonly_gauss)
-summary(model_GP_phyloonly_gauss)
-lambda(model_GP_phyloonly_gauss)$lambdaInt
 
 
 ```
