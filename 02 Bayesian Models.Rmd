@@ -10,8 +10,26 @@ library(data.table)
 library(lme4)
 library(MCMCglmm)
 
+# Ana's seed database
+seedDat <- fread("Data/Savanna seed database.csv")
+setnames(seedDat,c("Vegetation type", "Dispersal mode","Moisture content", "Seed mass (mg)"), c("VegType", "DM","MC","SM" ))
+seedDat[,Dormancy2Cat:=ifelse(Dormancy=="ND","ND","D")]
+
+# Prep seed dat by making species with underscore
+seedDat[,Species:=gsub(" ","_",Species)]
+
+# Calculating Species Means
+seedDat_spp <- seedDat[,.(T50_mean=mean(T50,na.rm=T),log_T50_mean=mean(log(T50),na.rm=T),GP = sum(GP,na.rm=T), sqrt_GP = mean(sqrt(GP),na.rm=T),log_Seedmass = mean(log(SM),na.rm=T), Moisture = mean(MC,na.rm=T)), by="Species"]
+# The number of sucess is the averager germ percentage X 10 seeds per replicate X 10 reps
+seedDat_spp[,Successes:=GP]
+seedDat_spp[,Failures:=1000-Successes]
+seedDat_spp[,Successes:=round( Successes)]
+seedDat_spp[,Failures:=round( Failures)]
 
 
+## Read in Trees 
+# Scenario 3:  adding genera or species to their families or genera using the same approach implemented in Phylomatic and BLADJ 
+phy_coll <- read.tree("Data/phy_coll3.tre")
 ```
 ## MCMCGlmm Models for T50 (mean germination time)
 
@@ -43,7 +61,7 @@ b = as.data.table(summary(Ainv))[order(i,j)]
 prior_weak <- list(R = list(V=1, nu=0.002),
               G = list(G1 = list(V=1, nu=0.002)))
 # I changed the nu prior form 0.02 to 2 and it seems to help convergence
-prior<-list(G=list(G1=list(V=1,nu=2)),R=list(V=1,nu=0.02))
+prior<-list(G=list(G1=list(V=1,nu=0.02)),R=list(V=1,nu=0.02))
 #  A prior Katie has tinkered with to make stronger
 prior_stronger<-list(G=list(G1=list(V=1,nu=0.8)),R=list(V=1,nu=0.8))
 
@@ -65,26 +83,15 @@ lambda <- function(modelObject){
 ## Convergence of this model was helped by converting the T50 variable to a log scale
 model_T50<-MCMCglmm(log(T50)~1,random=~Species,
                     family="gaussian",ginverse=list(Species=Ainv),prior=prior,
-                    data=seedDat,nitt=300000,burnin=10000,thin=50)
+                    data=seedDat,nitt=3000000,burnin=100000,thin=500)
 plot(model_T50)
 summary(model_T50)
 lambda(model_T50)$lambdaInt
 summary(model_T50)$DIC
 
-## How much phylogenetic signal in species means?
-# Bayesian model checking for just phylogenetic signal
-# Convergence of this model was helped by converting the T50 variable to a log scale
-model_T50_spp<-MCMCglmm(log(T50_mean)~1,random=~Species,
-                    family="gaussian",ginverse=list(Species=Ainv),prior=prior_stronger,
-                    data=seedDat_spp,nitt=300000,burnin=10000,thin=50)
-plot(model_T50_spp)
-summary(model_T50_spp)
-lambda(model_T50_spp)$lambdaInt
-summary(model_T50_spp)$DIC
-
-
-model_T50_fullmodel<-MCMCglmm(log(T50)~VegType + DM + MC + SM+Dormancy2Cat,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
-                    data=seedDat,nitt=300000,burnin=10000,thin=50)
+# FULL MODEL
+model_T50_fullmodel<-MCMCglmm(log(T50)~VegType + DM + MC + log(SM)+Dormancy2Cat, random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
+                    data=seedDat,nitt=3000000,burnin=100000,thin=500)
 plot(model_T50_fullmodel)
 summary(model_T50_fullmodel)
 lambda(model_T50_fullmodel)$lambdaInt
