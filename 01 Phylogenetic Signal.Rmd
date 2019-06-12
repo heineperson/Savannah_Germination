@@ -92,12 +92,16 @@ physig
 ```{r species anovas}
 modelGPaov <- lm(GP~Species,data=seedDat)
 anova(modelGPaov)
+summary(modelGPaov)
 modelT50aov <- lm(log(T50)~Species,data=seedDat)
 anova(modelT50aov)
+summary(modelT50aov)
 modellogSeedmassaov <-lm(log(SM)~Species,data=seedDat)
 anova(modellogSeedmassaov)
+summary(modellogSeedmassaov)
 modelMCaov <- lm((MC)~Species,data=seedDat)
 anova(modelMCaov)
+summary(modelMCaov)
 
 ```
 
