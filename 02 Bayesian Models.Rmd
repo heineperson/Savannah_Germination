@@ -31,13 +31,15 @@ seedDat_spp[,Failures:=round( Failures)]
 # Scenario 3:  adding genera or species to their families or genera using the same approach implemented in Phylomatic and BLADJ 
 phy_coll <- read.tree("Data/phy_coll3.tre")
 ```
-## MCMCGlmm Models for T50 (mean germination time)
+## MCMCGlmm Model Set Up
 
 Interesting source that may provide some insight: https://github.com/TGuillerme/mulTree/blob/master/doc/Vanilla_flavoured_phylogenetic_analyses.Rmd
 
 Note: I was confused why the inverse matrix doesn't have each pairwise combination of phylogenetic distances for all species  represented. It seems that Hadfield (2010) argues this is too computationally intensive: https://onlinelibrary.wiley.com/doi/full/10.1111/j.1420-9101.2009.01915.x However, I think maybe I could coerce this through nodes="ALL" argument in inverseA. It seems like these things should not be happening by default but I don't think they are.
 
-```{r mcmcglmm T50, message=FALSE, warning=FALSE}
+Looking for the best model at each covariate level
+
+```{r mcmcglmm model set up, message=FALSE, warning=FALSE}
 
 # We want to investigate a possible relationship between the phenotypes and the cofactor, 
 # while controlling for any phylogenetic dependency in the dataset. 
@@ -56,15 +58,6 @@ b = as.data.table(summary(Ainv))[order(i,j)]
 #b1 = as.data.table(summary(Ainv1$Ainv))[order(i,j)]
 # 
 
-# Initializing the bayesian model by defining priors
-# Here is a prior that has been in several sources that is thought of as a weak prior
-prior_weak <- list(R = list(V=1, nu=0.002),
-              G = list(G1 = list(V=1, nu=0.002)))
-# I changed the nu prior form 0.02 to 2 and it seems to help convergence
-prior<-list(G=list(G1=list(V=1,nu=0.02)),R=list(V=1,nu=0.02))
-#  A prior Katie has tinkered with to make stronger
-prior_stronger<-list(G=list(G1=list(V=1,nu=0.8)),R=list(V=1,nu=0.8))
-
 
 # Function calculating pagel's lambda for MCMCglmm objects
 lambda <- function(modelObject){
@@ -78,9 +71,21 @@ lambda <- function(modelObject){
   return(list(lambdaVec=objlambdaVec,lambdaMean=objlambdaMean,lambdaMode=objlambdaMode,lambdaInt=objlambdaInt))
 }
 
+```
 
+## Model selection T50 
+
+```{r model comparison}
 ## Bayesian model checking for just phylogenetic signal
 ## Convergence of this model was helped by converting the T50 variable to a log scale
+# Initializing the bayesian model by defining priors
+# Here is a prior that has been in several sources that is thought of as a weak prior
+prior_weak <- list(R = list(V=1, nu=0.002),
+              G = list(G1 = list(V=1, nu=0.002)))
+# I changed the nu prior form 0.02 to 2 and it seems to help convergence
+prior<-list(G=list(G1=list(V=1,nu=0.02)),R=list(V=1,nu=0.02))
+
+## Intercept Only Model
 model_T50<-MCMCglmm(log(T50)~1,random=~Species,
                     family="gaussian",ginverse=list(Species=Ainv),prior=prior,
                     data=seedDat,nitt=3000000,burnin=100000,thin=500)
@@ -89,7 +94,7 @@ summary(model_T50)
 lambda(model_T50)$lambdaInt
 summary(model_T50)$DIC
 
-# FULL MODEL
+## FULL MODEL
 model_T50_fullmodel<-MCMCglmm(log(T50)~VegType + DM + MC + log(SM)+Dormancy2Cat, random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
                     data=seedDat,nitt=3000000,burnin=100000,thin=500)
 plot(model_T50_fullmodel)
@@ -97,13 +102,46 @@ summary(model_T50_fullmodel)
 lambda(model_T50_fullmodel)$lambdaInt
 summary(model_T50_fullmodel)$DIC
 
-model_T50_dormancyCatOnly <- MCMCglmm(log(T50)~Dormancy2Cat,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
-                    data=seedDat,nitt=300000,burnin=10000,thin=50)
+## 4 variables (5 chose 4 = 4)
+# DM + MC + SM + Dorm
+model_T50_4a <- MCMCglmm(log(T50)~DM + MC + log(SM)+Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# DM + MC + SM + VegType
+model_T50_4b <- MCMCglmm(log(T50)~DM + MC + log(SM)+VegType ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# MC + SM + VegType + Dorm
+model_T50_4c <- MCMCglmm(log(T50)~ MC + log(SM)+Dormancy2Cat+ VegType ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# SM + VegType + Dorm + DM  ## BEST MODEL ##
+model_T50_4d <- MCMCglmm(log(T50)~log(SM)+VegType+Dormancy2Cat+DM ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
 
-plot(model_T50_dormancyCatOnly)
-summary(model_T50_dormancyCatOnly)
-lambda(model_T50_dormancyCatOnly)$lambdaInt
-summary(model_T50_dormancyCatOnly)$DIC
+## 3 Variables (4 chose 3 = 4)
+# SM + VegType + Dorm
+model_T50_3a <- MCMCglmm(log(T50)~log(SM)+VegType+Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# SM + VegType + DM
+model_T50_3b <- MCMCglmm(log(T50)~log(SM)+VegType+DM ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# VegType + DM + Dorm
+model_T50_3c <- MCMCglmm(log(T50)~VegType+DM+Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# DM + Dorm + SM  ## BEST MODEL ##
+model_T50_3d <- MCMCglmm(log(T50)~DM+Dormancy2Cat+log(SM) ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+
+## 2 Variables (3 chose 2 = 3)
+# DM + Dorm 
+model_T50_2a <- MCMCglmm(log(T50)~DM + Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# DM + SM
+model_T50_2b <- MCMCglmm(log(T50)~log(SM)+DM ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# SM + DORM
+model_T50_2c <- MCMCglmm(log(T50)~log(SM)++Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+
+
+## 1 Variable (5)
+# DM
+model_T50_1a <- MCMCglmm(log(T50)~DM  ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# MC
+model_T50_1b <- MCMCglmm(log(T50)~MC  ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# SM
+model_T50_1c <- MCMCglmm(log(T50)~ log(SM) ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# Dorm
+model_T50_1d <- MCMCglmm(log(T50)~Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# VegType
+model_T50_1d <- MCMCglmm(log(T50)~VegType ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
 
 ```
 
