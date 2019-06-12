@@ -18,13 +18,9 @@ seedDat[,Dormancy2Cat:=ifelse(Dormancy=="ND","ND","D")]
 # Prep seed dat by making species with underscore
 seedDat[,Species:=gsub(" ","_",Species)]
 
-# Calculating Species Means
-seedDat_spp <- seedDat[,.(T50_mean=mean(T50,na.rm=T),log_T50_mean=mean(log(T50),na.rm=T),GP = sum(GP,na.rm=T), sqrt_GP = mean(sqrt(GP),na.rm=T),log_Seedmass = mean(log(SM),na.rm=T), Moisture = mean(MC,na.rm=T)), by="Species"]
-# The number of sucess is the averager germ percentage X 10 seeds per replicate X 10 reps
-seedDat_spp[,Successes:=GP]
-seedDat_spp[,Failures:=1000-Successes]
-seedDat_spp[,Successes:=round( Successes)]
-seedDat_spp[,Failures:=round( Failures)]
+# Create variables ot use for the binomial models
+seedDat[,Successes:=GP]
+seedDat[,Failures:=100-GP]
 
 
 ## Read in Trees 
@@ -85,14 +81,6 @@ prior_weak <- list(R = list(V=1, nu=0.002),
 # I changed the nu prior form 0.02 to 2 and it seems to help convergence
 prior<-list(G=list(G1=list(V=1,nu=0.02)),R=list(V=1,nu=0.02))
 
-## Intercept Only Model
-model_T50<-MCMCglmm(log(T50)~1,random=~Species,
-                    family="gaussian",ginverse=list(Species=Ainv),prior=prior,
-                    data=seedDat,nitt=3000000,burnin=100000,thin=500)
-plot(model_T50)
-summary(model_T50)
-lambda(model_T50)$lambdaInt
-summary(model_T50)$DIC
 
 ## FULL MODEL
 model_T50_fullmodel<-MCMCglmm(log(T50)~VegType + DM + MC + log(SM)+Dormancy2Cat, random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,
@@ -127,21 +115,33 @@ model_T50_3d <- MCMCglmm(log(T50)~DM+Dormancy2Cat+log(SM) ,random=~Species,famil
 model_T50_2a <- MCMCglmm(log(T50)~DM + Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
 # DM + SM
 model_T50_2b <- MCMCglmm(log(T50)~log(SM)+DM ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
-# SM + DORM
-model_T50_2c <- MCMCglmm(log(T50)~log(SM)++Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# SM + DORM ## BEST MODEL##
+model_T50_2c <- MCMCglmm(log(T50)~log(SM)+Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=3000000,burnin=100000,thin=500)
+
+model_T50_2cInt <- MCMCglmm(log(T50)~log(SM)*Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
 
 
 ## 1 Variable (5)
 # DM
-model_T50_1a <- MCMCglmm(log(T50)~DM  ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_T50_1a <- MCMCglmm(log(T50)~DM  ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior, data=seedDat,nitt=300000,burnin=10000,thin=50)
 # MC
-model_T50_1b <- MCMCglmm(log(T50)~MC  ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_T50_1b <- MCMCglmm(log(T50)~MC  ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior, data=seedDat,nitt=300000,burnin=10000,thin=50)
 # SM
-model_T50_1c <- MCMCglmm(log(T50)~ log(SM) ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_T50_1c <- MCMCglmm(log(T50)~ log(SM) ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior, data=seedDat,nitt=300000,burnin=10000,thin=50)
 # Dorm
-model_T50_1d <- MCMCglmm(log(T50)~Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_T50_1d <- MCMCglmm(log(T50)~Dormancy2Cat ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior, data=seedDat,nitt=300000,burnin=10000,thin=50)
 # VegType
-model_T50_1d <- MCMCglmm(log(T50)~VegType ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_T50_1e <- MCMCglmm(log(T50)~VegType ,random=~Species,family="gaussian",ginverse=list(Species=Ainv),prior=prior, data=seedDat,nitt=300000,burnin=10000,thin=50)
+
+## Intercept Only 
+model_T50<-MCMCglmm(log(T50)~1,random=~Species,
+                    family="gaussian",ginverse=list(Species=Ainv),prior=prior,
+                    data=seedDat,nitt=3000000,burnin=100000,thin=500)
+plot(model_T50)
+summary(model_T50)
+lambda(model_T50)$lambdaInt
+summary(model_T50)$DIC
+
 
 ```
 
@@ -149,38 +149,63 @@ model_T50_1d <- MCMCglmm(log(T50)~VegType ,random=~Species,family="gaussian",gin
 # MCMC Glmm Germination Percentage
 ```{r MCMCglmm GP}
 ##################################
-########
-# The Bayesian model - including the dependent variable (Germination Percentage)
- prior2=list(R=list(V=1, nu=50), G=list(G1=list(V=1, nu=2,  
-                                               alpha.mu=0, alpha.V=500)))
- prior1 = list(R = list(V = 1, nu=0.08), G = list(G1 = list(V = 1, nu = .5, alpha.mu=0, alpha.V=200)))
+# Priors (the default priors seem to work almost better)
+ prior1 = list(R = list(V = 1, nu=0.002), G = list(G1 = list(V = 1, nu = 0.002, alpha.mu=0, alpha.V=50)))
 
-seedDat_spp[,Successes:=round( Successes)]
- seedDat_spp[,Failures:=round( Failures)]
 
-model_GP_phyloonly<-MCMCglmm(cbind((Successes),(Failures))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior1, data=seedDat_spp,nitt=2600000,burnin=60000,thin=200)                                          
+## FULL MODEL
+model_GP_full<-MCMCglmm(cbind(Successes,Failures)~VegType + DM + MC + log(SM)+Dormancy2Cat,random=~Species,prior=prior1,
+                             family="multinomial2",ginverse=list(Species=Ainv),
+                             data=seedDat,nitt=300000,burnin=10000,thin=50)                                         
 
-plot(model_GP_phyloonly)
-summary(model_GP_phyloonly)
-lambda_GP <- model_GP_phyloonly $VCV[,'Species']/
-  (model_GP_phyloonly$VCV[,'Species']+ model_GP_phyloonly$VCV[,'units'])
-mean(lambda_GP)
-posterior.mode(lambda_GP)
-HPDinterval(lambda_GP)
-DICGP <- summary(model_GP_phyloonly)$DIC
-#
-
-model_GP_full<-MCMCglmm(cbind(Success,Failure)~DM+habitat+Lifeform+Lifespan,random=~Species,
-                             family="multinomial2",ginverse=list(Species=Ainv),prior=prior2,
-                             data=data_lim_spp,nitt=5000000,burnin=100000,thin=500)                                          
-plot(model_GP_full)
 summary(model_GP_full)
-lambda_GPfull <- model_GP_full $VCV[,'Species']/
-  (model_GP_full$VCV[,'Species']+ model_GP_full$VCV[,'units'])
-mean(lambda_GPfull)
-posterior.mode(lambda_GPfull)
-HPDinterval(lambda_GPfull)
-DICfull <- summary(model_GP_full)$DIC
+plot(model_GP_full)
+
+## 4 variables (5 chose 4 = 4)
+# DM + MC + SM + Dorm
+model_GP_4a <- MCMCglmm(cbind(Successes,Failures)~DM + MC + log(SM)+Dormancy2Cat , random=~Species,family="multinomial2",ginverse=list(Species=Ainv), prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# DM + MC + SM + VegType
+model_GP_4b <- MCMCglmm(cbind(Successes,Failures)~DM + MC + log(SM)+VegType , random=~Species,family="multinomial2",ginverse=list(Species=Ainv), prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# MC + SM + VegType + Dorm
+model_GP_4c <- MCMCglmm(cbind(Successes,Failures)~ MC + log(SM)+Dormancy2Cat+ VegType , random=~Species,family="multinomial2",ginverse=list(Species=Ainv), prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# SM + VegType + Dorm + DM  ## BEST MODEL##
+model_GP_4d <- MCMCglmm(cbind(Successes,Failures)~log(SM)+VegType+Dormancy2Cat+DM , random=~Species,family="multinomial2",ginverse=list(Species=Ainv), prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+
+## 3 variables (4 chose 3 = 4)
+# SM + Vegtype + Dorm
+model_GP_3a <- MCMCglmm(cbind(Successes,Failures)~log(SM)+VegType+Dormancy2Cat,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# SM + VegType + DM 
+model_GP_3b <- MCMCglmm(cbind(Successes,Failures)~log(SM)+VegType+DM,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# VegType + DM + Dorm ## BEST MODEL BARELY##s
+model_GP_3c <- MCMCglmm(cbind(Successes,Failures)~VegType+DM+Dormancy2Cat,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# DM + Dorm + SM 
+model_GP_3d <- MCMCglmm(cbind(Successes,Failures)~DM+Dormancy2Cat+log(SM),random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+
+
+## 3 variables (3 chose 2 = 3)
+# VegType + DM 
+model_GP_2a <- MCMCglmm(cbind(Successes,Failures)~VegType+DM,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+#  VegType + Dorm 
+model_GP_2b <- MCMCglmm(cbind(Successes,Failures)~VegType+Dormancy2Cat,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# Dormancy2Cat + DM
+model_GP_2c <- MCMCglmm(cbind(Successes,Failures)~Dormancy2Cat+DM,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+
+##1 variables (5)
+# DM 
+model_GP_1a <- MCMCglmm(cbind(Successes,Failures)~DM,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# SM 
+model_GP_1b <- MCMCglmm(cbind(Successes,Failures)~log(SM),random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# VegType 
+model_GP_1c <- MCMCglmm(cbind(Successes,Failures)~VegType,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# Dorm ## Best Model Barely ##
+model_GP_1d <- MCMCglmm(cbind(Successes,Failures)~Dormancy2Cat,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+# MC
+model_GP_1e <- MCMCglmm(cbind(Successes,Failures)~MC,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+
+
+## INTERCEPT ONLY
+model_GP_phyloonly<-MCMCglmm(cbind((Successes),(Failures))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior1, data=seedDat,nitt=300000,burnin=10000,thin=50)                                          
+
 
 ```
 
