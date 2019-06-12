@@ -82,12 +82,26 @@ The statistic calculated here is the K statistic with a one tailed test for sign
 trait_matrix <- trait_matrix[phy_coll3$tip.label,]
 
 # Creating a data object that matches the tree and the traits (only including T50 and GP)
-MatchDataObj= match.phylo.data(phy_coll3, trait_matrix[,c(1,3,5,6)])
+MatchDataObj= match.phylo.data(phy_coll3, trait_matrix[,c(1,2,5,6)])
 
 # Calculating phylogenetic signal as well as P-value based on variance of phylogenetically independent contrasts relative to tip shuffling randomization.
 physig = multiPhylosignal(MatchDataObj$data, MatchDataObj$phy,reps=100000)
 physig
 ```
+## Testing for "Species Effect" Anovas
+```{r species anovas}
+modelGPaov <- lm(GP~Species,data=seedDat)
+anova(modelGPaov)
+modelT50aov <- lm(log(T50)~Species,data=seedDat)
+anova(modelT50aov)
+modellogSeedmassaov <-lm(log(SM)~Species,data=seedDat)
+anova(modellogSeedmassaov)
+modelMCaov <- lm((MC)~Species,data=seedDat)
+anova(modelMCaov)
+
+```
+
+
 
 ## Phylogenetic Signal using the Caper package for Pagel's lambda
 
