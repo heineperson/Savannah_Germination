@@ -15,8 +15,9 @@ seedDat <- fread("Data/Savanna seed database.csv")
 setnames(seedDat,c("Vegetation type", "Dispersal mode","Moisture content", "Seed mass (mg)"), c("VegType", "DM","MC","SM" ))
 seedDat[,Dormancy2Cat:=ifelse(Dormancy=="ND","ND","D")]
 
+seedDat[,colDorm:=ifelse(Dormancy2Cat=="ND","blue","black")]
 
-plot(log(seedDat$SM),log(seedDat$T50))
+plot(log(seedDat$SM),log(seedDat$T50),col=seedDat$colDorm)
 ```
 
 
