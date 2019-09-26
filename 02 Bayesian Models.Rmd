@@ -324,67 +324,111 @@ summary(model_GP_full_glmer)
 
 ## 5 variables
 # SM + VegType + Dorm + DM + LS ## BEST MODEL##
-model_GP_5_glmer <- glmer(cbind(Successes,Failures)~log(SM)+VegType+Dormancy2Cat+DM+LifeSpan +(1|Species),family="binomial",data=seedDat)   
-summary(model_GP_5_glmer)
+model_GP_5_glmer <- glmer(cbind(Successes,Failures)~VegType+Dormancy2Cat+DM+MC + LifeSpan +(1|Species),family="binomial",data=seedDat)   
+AIC(model_GP_5_glmer)
+
+model_GP_5a_glmer <- glmer(cbind(Successes,Failures)~log(SM)+Dormancy2Cat+DM+MC + LifeSpan +(1|Species),family="binomial",data=seedDat)   
+summary(model_GP_5a_glmer)
 
 
 ## 4 variables (5 chose 4 = 4)
 # DM + MC + SM + Dorm
-model_GP_4a <- MCMCglmm(cbind(Successes,Failures)~DM + MC + log(SM)+Dormancy2Cat , random=~Species,family="multinomial2",ginverse=list(Species=Ainv), prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_4a_glmer  <- glmer(cbind(Successes,Failures)~DM + MC + log(SM)+Dormancy2Cat +(1|Species),family="binomial",data=seedDat)   
 # DM + MC + SM + VegType
-model_GP_4b <- MCMCglmm(cbind(Successes,Failures)~DM + MC + log(SM)+VegType , random=~Species,family="multinomial2",ginverse=list(Species=Ainv), prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_4b_glmer  <- glmer(cbind(Successes,Failures)~DM + MC + log(SM)+VegType +(1|Species),family="binomial",data=seedDat)   
 # MC + SM + VegType + Dorm
-model_GP_4c <- MCMCglmm(cbind(Successes,Failures)~ MC + log(SM)+Dormancy2Cat+ VegType , random=~Species,family="multinomial2",ginverse=list(Species=Ainv), prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_4c_glmer  <- glmer(cbind(Successes,Failures)~ MC + log(SM)+Dormancy2Cat+ VegType+(1|Species),family="binomial",data=seedDat)   
 # SM + VegType + Dorm + DM +  ## BEST MODEL##
-model_GP_4d <- MCMCglmm(cbind(Successes,Failures)~log(SM)+VegType+Dormancy2Cat+DM , random=~Species,family="multinomial2",ginverse=list(Species=Ainv), prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
-# VegType + DM + Dorm + LS
-model_GP_4e <- MCMCglmm(cbind(Successes,Failures)~VegType+DM+Dormancy2Cat+LifeSpan,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_4d_glmer  <- glmer(cbind(Successes,Failures)~log(SM)+VegType+Dormancy2Cat+DM +(1|Species),family="binomial",data=seedDat)   
+# VegType + DM + Dorm + MC
+model_GP_4e_glmer  <- glmer(cbind(Successes,Failures)~VegType+DM+Dormancy2Cat+MC+(1|Species),family="binomial",data=seedDat)   
+# Lifespan + DM + Dorm + MC
+model_GP_4f_glmer  <- glmer(cbind(Successes,Failures)~LifeSpan+DM+Dormancy2Cat+MC+(1|Species),family="binomial",data=seedDat)   
+# Lifespan + Dorm + MC + SM
+model_GP_4g_glmer  <- glmer(cbind(Successes,Failures)~LifeSpan+Dormancy2Cat+MC+log(SM)+(1|Species),family="binomial",data=seedDat)   
+# Lifespan + MC + SM + DM ## BEST MODEL
+model_GP_4h_glmer  <- glmer(cbind(Successes,Failures)~LifeSpan+MC+log(SM)+ DM+ (1|Species),family="binomial",data=seedDat)   
+# Lifespan + SM + DM + Dorm
+model_GP_4i_glmer  <- glmer(cbind(Successes,Failures)~LifeSpan+log(SM)+ DM + Dormancy2Cat + (1|Species),family="binomial",data=seedDat)   
 
 
 ## 3 variables (4 chose 3 = 4)
 # SM + Vegtype + Dorm
-model_GP_3a <- MCMCglmm(cbind(Successes,Failures)~log(SM)+VegType+Dormancy2Cat,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_3a_glmer <- glmer(cbind(Successes,Failures)~log(SM)+VegType+Dormancy2Cat+ (1|Species),family="binomial",data=seedDat)   
 # SM + VegType + DM 
-model_GP_3b <- MCMCglmm(cbind(Successes,Failures)~log(SM)+VegType+DM,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_3b_glmer <- glmer(cbind(Successes,Failures)~log(SM)+VegType+DM+ (1|Species),family="binomial",data=seedDat)   
 # VegType + DM + Dorm ## BEST MODEL BARELY##s
-model_GP_3c <- MCMCglmm(cbind(Successes,Failures)~VegType+DM+Dormancy2Cat,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_3c_glmer <- glmer(cbind(Successes,Failures)~VegType+DM+Dormancy2Cat+ (1|Species),family="binomial",data=seedDat)   
 # DM + Dorm + SM 
-model_GP_3d <- MCMCglmm(cbind(Successes,Failures)~DM+Dormancy2Cat+log(SM),random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_3d_glmer <- glmer(cbind(Successes,Failures)~DM+Dormancy2Cat+log(SM)+ (1|Species),family="binomial",data=seedDat)   
 # DM + Dorm + MC 
-model_GP_3e <- MCMCglmm(cbind(Successes,Failures)~DM+Dormancy2Cat+MC,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
-# DM + Dorm + LS
-model_GP_3f <- MCMCglmm(cbind(Successes,Failures)~DM+Dormancy2Cat+LifeSpan,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_3e_glmer <- glmer(cbind(Successes,Failures)~DM+Dormancy2Cat+MC+ (1|Species),family="binomial",data=seedDat)   
+# LS + DM + DORM
+model_GP_3f_glmer <- glmer(cbind(Successes,Failures)~DM+Dormancy2Cat+LifeSpan+ (1|Species),family="binomial",data=seedDat)   
+# LS + DORM + MC
+model_GP_3g_glmer <- glmer(cbind(Successes,Failures)~Dormancy2Cat+MC+LifeSpan+ (1|Species),family="binomial",data=seedDat)   
+# LS + MC + SM
+model_GP_3h_glmer <- glmer(cbind(Successes,Failures)~log(SM)+MC+LifeSpan+ (1|Species),family="binomial",data=seedDat)   
+# LS + SM + DM
+model_GP_3i_glmer <- glmer(cbind(Successes,Failures)~LifeSpan+log(SM) + DM + (1|Species),family="binomial",data=seedDat)   
+
 
 
 ## 2 variables (3 chose 2 = 3)
 # VegType + DM ## BEST MODEL##
-model_GP_2a <- MCMCglmm(cbind(Successes,Failures)~VegType+DM,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_2a <- glmer(cbind(Successes,Failures)~LifeSpan+log(SM)+ (1|Species),family="binomial",data=seedDat)   
+model_GP_2b <- glmer(cbind(Successes,Failures)~MC+log(SM)+ (1|Species),family="binomial",data=seedDat)   
+model_GP_2c <- glmer(cbind(Successes,Failures)~MC+LifeSpan+ (1|Species),family="binomial",data=seedDat)   ### BEST MODEL OVERALL 
 
-#  VegType + Dorm 
-model_GP_2b <- MCMCglmm(cbind(Successes,Failures)~VegType+Dormancy2Cat,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
-# Dormancy2Cat + DM
-model_GP_2c <- MCMCglmm(cbind(Successes,Failures)~Dormancy2Cat+DM,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
-# Dormancy2Cat + LifeSpan
-model_GP_2d <- MCMCglmm(cbind(Successes,Failures)~Dormancy2Cat+LifeSpan,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
 
 
 ##1 variables (5)
 # DM 
-model_GP_1a <- MCMCglmm(cbind(Successes,Failures)~DM,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_1a <- glmer(cbind(Successes,Failures)~DM+ (1|Species),family="binomial",data=seedDat)   
 # SM 
-model_GP_1b <- MCMCglmm(cbind(Successes,Failures)~log(SM),random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_1b <- glmer(cbind(Successes,Failures)~log(SM)+ (1|Species),family="binomial",data=seedDat)   
 # VegType 
-model_GP_1c <- MCMCglmm(cbind(Successes,Failures)~VegType,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_1c <- glmer(cbind(Successes,Failures)~VegType+ (1|Species),family="binomial",data=seedDat)   
 # Dorm ## Best Model Barely ##
-model_GP_1d <- MCMCglmm(cbind(Successes,Failures)~Dormancy2Cat,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_1d <- glmer(cbind(Successes,Failures)~Dormancy2Cat+ (1|Species),family="binomial",data=seedDat)   
 # MC
-model_GP_1e <- MCMCglmm(cbind(Successes,Failures)~MC,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_1e <- glmer(cbind(Successes,Failures)~MC+ (1|Species),family="binomial",data=seedDat)   
 # LifeSpan
-model_GP_1f <- MCMCglmm(cbind(Successes,Failures)~LifeSpan,random=~Species,family="multinomial2", ginverse=list(Species=Ainv),prior=prior1,data=seedDat,nitt=300000,burnin=10000,thin=50)
+model_GP_1f <- glmer(cbind(Successes,Failures)~LifeSpan+ (1|Species),family="binomial",data=seedDat)   
 
 
 ## INTERCEPT ONLY
-model_GP_phyloonly<-MCMCglmm(cbind((Successes),(Failures))~1,random=~Species,family="multinomial2",ginverse=list(Species=Ainv),prior = prior1, data=seedDat,nitt=300000,burnin=10000,thin=50)                                          
+model_GP_int <- glmer(cbind(Successes,Failures)~1+(1|Species),family="binomial",data=seedDat)   
+                            
+
+for (i in 1:length(unique(seedDat$Species))){
+datSpp <- seedDat[Species==unique(seedDat$Species)[i]]
+plot(datSpp$MC, datSpp$Successes,main=unique(seedDat$Species)[i])
+print(cor.test(datSpp$MC, datSpp$GP)  )
+}
+
+spp <- seedDat[,.(MC=mean(MC),GP = mean(GP),SM= mean(log(SM)),T50 = mean(T50,na.rm=T), LS = LifeSpan[1]),by="Species"]
+plot(spp$MC,spp$GP,col=as.factor(spp$LS))
+plot(spp$SM,spp$GP,col=as.factor(spp$LS))
+
+
+plot(seedDat$MC, seedDat$GP, col=as.factor(seedDat$LifeSpan),pch=16)
+plot(log(seedDat$SM), seedDat$GP, col=as.factor(seedDat$LifeSpan),pch=16)
+
+
+p <- ggplot(data=seedDat, aes(x=LifeSpan, y=GP))+ geom_boxplot()
+p
+
+p <- ggplot(data=seedDat, aes(x=LifeSpan, y=T50))+ geom_boxplot()
+p
+
+p <- ggplot(data=spp, aes(x=LS, y=GP))+ geom_boxplot()
+p
+
+
+p <- ggplot(data=seedDat, aes(x=LifeSpan, y=T50))+ geom_boxplot()
+p
+
 
 ```
 
